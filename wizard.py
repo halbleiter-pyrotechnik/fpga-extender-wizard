@@ -8,6 +8,8 @@
 
 import sys, os, json
 
+from wizard_keywords import *
+
 
 def importJSON(filename):
     if not os.path.exists(filename):
@@ -33,9 +35,42 @@ def importJSON(filename):
     return configuration
 
 
-def checkConfigurationPrerequisites(json):
-    # if json.hasKey
-    print(json)
+def checkWizardVersion(configuration):
+    if (configuration[PORT_WIZARD_VERSION] == PORT_WIZARD_VERSION_ANY):
+        return True
+
+    try:
+        version = int(configuration[PORT_WIZARD_VERSION])
+    except:
+        print("Error: The wizard version must be an integer.")
+        sys.exit(13)
+
+    if (version >= PORT_WIZARD_VERSION_THIS):
+        return True
+
+    print("Error: This wizard is not compatible with the specified configuration.")
+    sys.exit(13)
+
+
+def checkConfigurationPrerequisites(configuration):
+    if not (FPGA_EXTENDER in configuration.keys()):
+        print("Configuration error: Section \"{:s}\" is missing.".format(FPGA_EXTENDER))
+        sys.exit(10)
+
+    if not (HARDWARE_REVISION in configuration[FPGA_EXTENDER].keys()):
+        print("Configuration error: Section \"{:s}\" requires a property \"{:s}\".".format(FPGA_EXTENDER, HARDWARE_REVISION))
+        sys.exit(11)
+
+    if not (PORT_WIZARD in configuration.keys()):
+        print("Configuration error: Section \"{:s}\" is missing.".format(PORT_WIZARD))
+        sys.exit(12)
+
+    if HARDWARE_REVISION in configuration[PORT_WIZARD].keys():
+        checkWizardVersion(configuration[PORT_WIZARD])
+
+    print("All good.")
+
+    return True
 
 
 def startWizard():
@@ -44,7 +79,6 @@ def startWizard():
         sys.exit(1)
 
     configuration = importJSON(sys.argv[1])
-
     checkConfigurationPrerequisites(configuration)
 
 
