@@ -25,12 +25,12 @@ def importJSON(filename):
         sys.exit(3)
 
     try:
-        json = json.loads(filecontent)
+        configuration = json.loads(filecontent)
     except:
         print("Error: Unable to parse configuration. Please check the syntax of your file.")
         sys.exit(4)
 
-    return json
+    return configuration
 
 
 def checkConfigurationPrerequisites(json):
@@ -43,9 +43,9 @@ def startWizard():
         print("Usage: wizard.py <configuration file>")
         sys.exit(1)
 
-    json = importJSON(sys.argv[1])
+    configuration = importJSON(sys.argv[1])
 
-    checkConfigurationPrerequisites(json)
+    checkConfigurationPrerequisites(configuration)
 
 
 if __name__ == "__main__":
