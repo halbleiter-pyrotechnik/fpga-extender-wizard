@@ -29,7 +29,7 @@ def importJSON(filename):
     try:
         configuration = json.loads(filecontent)
     except:
-        print("Error: Unable to parse configuration. Please check the syntax of your file.")
+        print("Error: Unable to parse JSON. Please check the syntax of your configuration.")
         sys.exit(4)
 
     return configuration
@@ -61,6 +61,10 @@ def checkConfigurationPrerequisites(configuration):
         print("Configuration error: Section \"{:s}\" requires a property \"{:s}\".".format(FPGA_EXTENDER, HARDWARE_REVISION))
         sys.exit(11)
 
+    if not (PORTS in configuration[FPGA_EXTENDER].keys()):
+        print("Configuration error: Section \"{:s}\" requires a subsection \"{:s}\".".format(FPGA_EXTENDER, PORTS))
+        sys.exit(11)
+
     if not (PORT_WIZARD in configuration.keys()):
         print("Configuration error: Section \"{:s}\" is missing.".format(PORT_WIZARD))
         sys.exit(12)
@@ -68,9 +72,14 @@ def checkConfigurationPrerequisites(configuration):
     if HARDWARE_REVISION in configuration[PORT_WIZARD].keys():
         checkWizardVersion(configuration[PORT_WIZARD])
 
-    print("All good.")
-
     return True
+
+
+def processPortConfiguration(ports):
+    for port in ports.keys():
+        if not (PORT_FUNCTION in port.keys()):
+            print("Configuration error: Port \"{:s}\" has no function.".format(port))
+            sys.exit(20)
 
 
 def startWizard():
@@ -80,6 +89,7 @@ def startWizard():
 
     configuration = importJSON(sys.argv[1])
     checkConfigurationPrerequisites(configuration)
+    processPortConfiguration(configuration[FPGA_EXTENDER][PORTS])
 
 
 if __name__ == "__main__":
