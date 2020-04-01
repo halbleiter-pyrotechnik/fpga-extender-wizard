@@ -11,26 +11,31 @@ import sys, os, json
 from wizard_keywords import *
 
 
-def importJSON(filename):
-    if not os.path.exists(filename):
-        print("Error: File not found.")
-        sys.exit(1)
+def importJSON(filename=None, plaintext=None):
+    if not (filename is None):
+        if not os.path.exists(filename):
+            print("Error: File not found.")
+            sys.exit(1)
 
-    if not os.path.isfile(filename):
-        print("Error: Argument must be a file.")
-        sys.exit(2)
+        if not os.path.isfile(filename):
+            print("Error: Argument must be a file.")
+            sys.exit(2)
+
+        try:
+            plaintext = open(filename, "r").read()
+        except:
+            print("Error: Unable to read the specified file.")
+            sys.exit(3)
+
+    if plaintext is None:
+        print("Error: You didn't provide a JSON to import.")
+        sys.exit(4)
 
     try:
-        filecontent = open(filename, "r").read()
-    except:
-        print("Error: Unable to read the specified file.")
-        sys.exit(3)
-
-    try:
-        configuration = json.loads(filecontent)
+        configuration = json.loads(plaintext)
     except:
         print("Error: Unable to parse JSON. Please check the syntax of your configuration.")
-        sys.exit(4)
+        sys.exit(5)
 
     return configuration
 
@@ -82,15 +87,15 @@ def processPortConfiguration(ports):
             sys.exit(20)
 
 
-def startWizard():
-    if len(sys.argv) < 2:
-        print("Usage: wizard.py <configuration file>")
-        sys.exit(1)
-
-    configuration = importJSON(sys.argv[1])
+def runWizard(filename=None, plaintext=None):
+    configuration = importJSON(filename=filename, plaintext=plaintext)
     checkConfigurationPrerequisites(configuration)
     processPortConfiguration(configuration[FPGA_EXTENDER][PORTS])
 
 
 if __name__ == "__main__":
-    startWizard()
+    if len(sys.argv) < 2:
+        print("Usage: wizard.py <configuration file>")
+        sys.exit(1)
+
+    runWizard(filename=sys.argv[1])
