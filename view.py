@@ -4,7 +4,7 @@ from PIL import ImageTk, Image
 from config import Config
 import controller
 
-
+# derrived class by putting tk.Tk
 class View(tk.Tk):
 
     def __init__(self):
@@ -47,7 +47,7 @@ class View(tk.Tk):
 
 
     #
-    # populating 18 dropdown menues, set locations and put first value on "Empty"
+    # populating 18 dropdown menues, placing them on background
     #
     def dropDown(self):
 
@@ -58,30 +58,44 @@ class View(tk.Tk):
         yPos = yPos + [yPos[10], yPos[11], yPos[12], yPos[13]]
 
         self.arrayOptionmenu = 18 * [None]
-
         self.var = 18 * ["Empty"]
         self.varnames = 18 * [None]
 
-
+        # catches an update in OptionMenu and provide dropdown number in index and chosen option in value
+        # each time trace sees a change, the argument will be given to function change with args looking like this:
+        # ('PY_VAR0', '', 'w') - example for updated change of first dropdown
         def change(*args):
+            # saving the first argument of args in varname: 'PY_VAR0'
             varname = args[0]
+            # gets value of recently updated argument
             value = self.getvar(varname)
+            # finds the position of varname (for example 'PY_VAR0') in self.varnames array
+            # saves position in variable index
             index = self.varnames.index(varname)
+            # common to run prints on the first run to see if we get the correct return
             print(index)
             print(value)
             return(True)
 
-
         for i in range(18):
+            # giving argument self to StringVar class of tkinter instead of normally root
             self.var[i] = tk.StringVar(self)
+            # saves var entry as a name (string) in varnames array
             self.varnames[i] = self.var[i]._name
+            # attaches 'w' (write) & change function as argument
+            # trace a method of StringVar
+            # changed the order: first trace, then set -> initial value will be set and calls function change 18 times
+            # trace method is registering an update of var[i]
             self.var[i].trace('w', change)
-            self.var[i].set("Empty")
+            # for-loop: each increment calls change funtion -> updates var[i] entry
+            self.var[i].set(self.config.options[0])
+            # populating array of tk.OptionMenues
+            # attaching to canvas
+            # "*" means giving each entry of options (defined in config.py) as choice for OptionMenu
             self.arrayOptionmenu[i] = tk.OptionMenu(self.canvas, self.var[i], *self.config.options)
             self.arrayOptionmenu[i].config(width= 6)
             self.arrayOptionmenu[i].pack()
             self.arrayOptionmenu[i].place(x = xPos[i], y = yPos[i])
-
 
     def run(self):
         self.mainloop()
