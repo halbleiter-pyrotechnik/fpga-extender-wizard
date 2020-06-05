@@ -1,11 +1,34 @@
-
-from verilog_port import *
-from verilog_instance import *
+#!/usr/bin/python3
 
 
-class SPIMaster:
-    def __init__(self, index):
-        self.index = index
+PORT_TARGET_DAC_REV1 = "dac-rev1"
+
+
+class VerilogPort:
+    def __init__(self, port, pin, direction, signal):
+        self.port = port
+        self.pin = pin
+        self.direction = direction
+        self.signal = signal
+
+
+#
+# This class controls Verilog code generation
+# according to the configuration in a referenced configuration object
+#
+class WizardCodeGenerator:
+    #
+    # Store a reference to the configuration object
+    #
+    def __init__(self, config):
+        self.config = config
+
+    #
+    # Summarize the FPGA extender configuration
+    #
+    def stats(self):
+        print(str(self.config))
+
 
     def generateVerilogPorts(self, index=None, ports=[]):
         if index is None:
@@ -16,6 +39,7 @@ class SPIMaster:
         ports += [VerilogPort(port=index, pin=9, direction="output", signal="mosi")]
         ports += [VerilogPort(port=index, pin=3, direction="input",  signal="miso")]
         return ports
+
 
     def generateVerilogBlock(self, index=None):
         if index is None:
