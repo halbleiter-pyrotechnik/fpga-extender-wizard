@@ -32,11 +32,11 @@ def renameSignal(signal):
         return signal
 
     a = s[0].lower()
-    if (a == "sclk"):
+    if (a in ["sclk", "sck"]):
         pin = 1
     elif (a == "miso"):
         pin = 3
-    elif (a == "ncs"):
+    elif (a in ["cs", "ncs", "ss", "nss"]):
         pin = 5
     elif (a == "mosi"):
         pin = 9
@@ -54,7 +54,7 @@ def renameSignal(signal):
     except:
         return signal
 
-    return "pin" + str(pin) + "_h[" + str(header-1) + "]"
+    return "h_h{:d}""_pin{:d}".format(header, pin)
 
 
 #
@@ -263,7 +263,7 @@ def generateFPGAExtenderPCF(
             print("Warning: BNC{:d} pin 1 is connected to illegal FPGA ball name {:s}. Skipping.".format(i+1, ballLabel))
             continue
 
-        signalName = "bnc[{:d}]".format(i)
+        signalName = "bnc{:d}".format(i+1)
         pcf.addConstraint(
             signal = signalName,
             pin    = ballLabel
