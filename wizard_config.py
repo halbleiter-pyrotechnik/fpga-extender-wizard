@@ -15,9 +15,10 @@ class WizardConfigJSON:
     FPGA_EXTENDER = "fpga-extender"
     HARDWARE_REVISION = "hardware-revision"
     PORTS = "ports"
-    PORT_FUNCTION = "function"
-    PORT_FUNCTION_SPI_MASTER = "spi-master"
-    PORT_TARGET = "target"
+    PORT_ROLE = "role"
+    PORT_ROLE_DAC = "dac"
+    PORT_INTERFACE = "interface"
+    PORT_INTERFACE_SPI_MASTER = "spi-master"
 
     PORT_WIZARD = "port-wizard"
     PORT_WIZARD_VERSION = "version"
@@ -120,3 +121,15 @@ class WizardConfigJSON:
     #
     def getPorts(self):
         return self.configuration[self.FPGA_EXTENDER][self.PORTS]
+
+    #
+    # Return an array of port names used in this project
+    #
+    def getPortList(self):
+        return list(self.getPorts().keys())
+
+    #
+    # Return the configured role for a port
+    #
+    def getPortRole(self, portName):
+        return self.getPorts()[portName][self.PORT_ROLE]

@@ -15,6 +15,7 @@ def runWizard(filename=None, plaintext=None):
     config = WizardConfigJSON(filename=filename, plaintext=plaintext)
     code_generator = WizardCodeGenerator(config)
     code_generator.stats()
+    code_generator.exportVerilogPorts()
 
 
 if __name__ == "__main__":
