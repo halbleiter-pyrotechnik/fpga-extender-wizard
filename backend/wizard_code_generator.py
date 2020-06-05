@@ -27,25 +27,62 @@ class WizardCodeGenerator:
     def generateVerilogDAC(self, portName):
         self.portCounterDAC += 1
         ports = "/*\n * DAC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterDAC, portName)
-        wires = "/*\n * Wires connecting to DAC1 (via SPI)\n */\n"
+        wires = "/*\n * Wires connecting DAC{:d}\n */\nwire ".format(self.portCounterDAC)
+        instances = ""
         portName = portName.lower()
 
-        nss_signal = "dac{:d}_nss".format(self.portCounterDAC)
+        nss_signal = "dac_nss"
         ports += "output {:s}_pin5;\n".format(portName)
         ports += "assign {:s}_pin5 = {:s};\n".format(portName, nss_signal)
-        wires += "wire {:s}, ".format(nss_signal)
+        if self.portCounterDAC == 1:
+            # nSS is shared among all DACs
+            wires += "{:s}, ".format(nss_signal)
 
-        sclk_signal = "dac{:d}_sclk".format(self.portCounterDAC)
+        sclk_signal = "dac_sclk"
         ports += "output {:s}_pin1;\n".format(portName)
         ports += "assign {:s}_pin1 = {:s};\n".format(portName, sclk_signal)
-        wires += "{:s}, ".format(sclk_signal)
+        if self.portCounterDAC == 1:
+            # SCLK is shared among all DACs
+            wires += "{:s}, ".format(sclk_signal)
 
         mosi_signal = "dac{:d}_mosi".format(self.portCounterDAC)
         ports += "output {:s}_pin9;\n".format(portName)
         ports += "assign {:s}_pin9 = {:s};\n\n".format(portName, mosi_signal)
-        wires += "{:s};\n\n".format(mosi_signal)
+        wires += "{:s};\n".format(mosi_signal)
 
-        instance = \
+        buffer_bus = "dac{:d}_buffer".format(self.portCounterDAC)
+        wires += "wire[15:0] {:s};\n".format(buffer_bus)
+        value_bus = "dac{:d}_value".format(self.portCounterDAC)
+        wires += "wire[11:0] {:s};\n".format(value_bus)
+        wires += "assign {:s}[15:12] = 4'b0000;\n".format(buffer_bus)
+        wires += "assign {:s}[11:0] = {:s};\n\n".format(buffer_bus, value_bus)
+
+        if self.portCounterDAC == 1:
+            # SPI requires a stimulus
+            instances += \
+"""/**
+ * This instance generates slave-select and
+ * clock signals for the SPI transmission
+ */
+spi_stimulus
+    #(
+        .bitcount       (16),
+        .ss_polarity    (0),
+        .sclk_polarity  (0)
+        )
+    analog_debugger_spi_stimulus
+    (
+        .clock      (master_clock),
+        .trigger    (dac_update_trigger),
+        .abort      (1'b0),
+        .ss         (dac_nss),
+        .sclk       (dac_sclk),
+        .complete   (dac_update_complete)
+        );
+
+"""
+
+        instances += \
 """/**
  * This instance transmits data to DAC{:d}
  */
@@ -62,24 +99,26 @@ spi_transmitter
         )
     spi_transmitter_dac{:d}
     (
-        .clock      (clock_80mhz),
+        .clock      (master_clock),
         .ss         ({:s}),
         .sclk       ({:s}),
         .sdo        ({:s}),
         .load       (),
-        .data       (dac{:d}_data[15:0]),
+        .data       ({:s}[15:0]),
         .complete   ()
         );
+
 """.format(
         self.portCounterDAC,
         self.portCounterDAC,
         nss_signal,
         sclk_signal,
         mosi_signal,
+        buffer_bus,
         self.portCounterDAC
         )
 
-        return (wires, ports, instance)
+        return (wires, ports, instances)
 
 
     #
