@@ -1,9 +1,6 @@
-from controller import please
+from controller import Controller
 
-
-
-
-
+applyController = Controller()
 
 
 

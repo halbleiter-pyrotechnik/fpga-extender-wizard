@@ -1,20 +1,18 @@
 import tkinter as tk                      #create the GUI
-from tkinter import filedialog, Text    #filedialog pick the app
 from PIL import ImageTk, Image
-from config import Config
-import controller
-
 # derrived class by putting tk.Tk
 class View(tk.Tk):
 
-    def __init__(self):
+    def __init__(self, controller):
         tk.Tk.__init__(self)
+        self.controller = controller
         self.createBackground()
-        self.config = Config()
         self.createButtons()
         self.dropDown()
         self.apps = []
         self.run()
+
+
 
     #
     # import background
@@ -29,19 +27,22 @@ class View(tk.Tk):
     # populating buttons on background
     #
     def createButtons(self):
-        # self.addapp = tk.Button(self, text="Datei öffnen", padx=30, pady=10
-        #                       , fg="white", bg="#263D42", command=controller.addApp)  # command: Funktion aufrufen
+        # self.openFile = tk.Button(self, text="Datei öffnen", padx=30, pady=10
+        #                       , fg="white", bg="#263D42", command=controller.openFile)  # command: Funktion aufrufen
+        # self.openFile.pack()
 
-        # self.runapp = tk.Button(self, text="Starte Programm", padx=30, pady=10
-        #                , fg="white", bg="#263D40", command=controller.runapps)
-        # self.runapp.pack()
 
-        self.buttonQuit = tk.Button(self, text='Close Program', padx = 400, pady = 20, command=self.quit)
+        # # self.runapp = tk.Button(self, text="Starte Programm", padx=30, pady=10
+        # #                , fg="white", bg="#263D40", command=controller.runapps)
+        # # self.runapp.pack()
+
+        self.saveButton = tk.Button(self, text="Save File", padx=350, pady=20
+                              , fg="white", bg="#263D42", command=self.controller.saveFile)
+        self.saveButton.pack()
+
+        self.buttonQuit = tk.Button(self, text='Close Program', padx=350, pady=20, command=self.quit)
         self.buttonQuit.pack()
 
-        # self.openFile = tk.Button(self, text="Datei öffnen", padx=30, pady=10
-        #                       , fg="white", bg="#263D42", command=controller.addApp)  # command: Funktion aufrufen
-        # self.openFile.pack()
 
 
 
@@ -61,6 +62,8 @@ class View(tk.Tk):
         self.var = 18 * ["Empty"]
         self.varnames = 18 * [None]
 
+
+
         # catches an update in OptionMenu and provide dropdown number in index and chosen option in value
         # each time trace sees a change, the argument will be given to function change with args looking like this:
         # ('PY_VAR0', '', 'w') - example for updated change of first dropdown
@@ -73,9 +76,14 @@ class View(tk.Tk):
             # saves position in variable index
             index = self.varnames.index(varname)
             # common to run prints on the first run to see if we get the correct return
-            print(index)
-            print(value)
-            return(True)
+            # print(index)
+            # print(value)
+            self.controller.input(index, value)
+
+            # with open('your_file.txt', 'w') as f:
+            #     for item in self.hallo:
+            #         f.write("%s\n" % item)
+
 
         for i in range(18):
             # giving argument self to StringVar class of tkinter instead of normally root
@@ -88,14 +96,15 @@ class View(tk.Tk):
             # trace method is registering an update of var[i]
             self.var[i].trace('w', change)
             # for-loop: each increment calls change funtion -> updates var[i] entry
-            self.var[i].set(self.config.options[0])
+            self.var[i].set(self.controller.getDefaultValue())
             # populating array of tk.OptionMenues
             # attaching to canvas
             # "*" means giving each entry of options (defined in config.py) as choice for OptionMenu
-            self.arrayOptionmenu[i] = tk.OptionMenu(self.canvas, self.var[i], *self.config.options)
+            self.arrayOptionmenu[i] = tk.OptionMenu(self.canvas, self.var[i], *self.controller.getPortOptions())
             self.arrayOptionmenu[i].config(width= 6)
             self.arrayOptionmenu[i].pack()
             self.arrayOptionmenu[i].place(x = xPos[i], y = yPos[i])
+
 
     def run(self):
         self.mainloop()
@@ -125,5 +134,5 @@ class View(tk.Tk):
 if __name__ == "__main__":
     #f.write(apps + '.')
 
-    hello = View()
+    # hello = View()
     print("Programm geschlossen")
