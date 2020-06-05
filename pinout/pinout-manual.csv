@@ -1,0 +1,30 @@
+
+# Onboard quartz
+clock_12mhz;J3;
+
+# Programming pins (list here to prevent usage elsewhere)
+ice_ss;R12;     # FPGA output or high-Z
+ice_sck;R11;    # FPGA output or high-Z
+ice_mosi;P11;   # FPGA input
+ice_miso;P12;   # FPGA output or high-Z
+#ice_cdone;M10;  # FPGA output
+#ice_creset;N11; # FPGA input
+
+# UART interface from/to PC
+uart_dcd;B15;  # FPGA output
+uart_dsr;B14;  # FPGA output
+uart_dtr;A16;  # FPGA input
+uart_cts;A15;  # FPGA output
+uart_rts;B13;  # FPGA input
+uart_tx;B12;   # FPGA output
+uart_rx;B10;   # FPGA input
+
+# Onboard LEDs
+led[0];B5;  # labelled 'D9'
+led[1];B4;  # labelled 'D8'
+led[2];A2;  # labelled 'D7'
+led[3];A1;  # labelled 'D6'
+led[4];C5;  # labelled 'D5'
+led[5];C4;  # labelled 'D4'
+led[6];B3;  # labelled 'D3'
+led[7];C3;  # labelled 'D2'
