@@ -20,25 +20,34 @@ class WizardCodeGenerator:
 
 
     #
-    # This method generates module port and wires for a DAC
+    # This method generates code for a DAC
     #
-    def generateDACPort(self, portName):
-        portName = portName.lower()
+    def generateVerilogDAC(self, portName):
         self.portCounterDAC += 1
-        result = "// Ports and wires for DAC{:d}\n".format(self.portCounterDAC)
-        result += "output {:s}_pin5;\n".format(portName)
-        result += "assign {:s}_pin5 = dac{:d}_ncs;\n".format(portName, self.portCounterDAC)
-        result += "output {:s}_pin1;\n".format(portName)
-        result += "assign {:s}_pin1 = dac{:d}_sclk;\n".format(portName, self.portCounterDAC)
-        result += "output {:s}_pin9;\n".format(portName)
-        result += "assign {:s}_pin9 = dac{:d}_mosi;\n".format(portName, self.portCounterDAC)
-        # result += "input  {:s}_pin3;\n".format(portName)
-        # result += "assign dac{:d}_miso = {:s}_pin3;\n".format(self.portCounterDAC, portName)
-        return result
+        ports = "/*\n * DAC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterDAC, portName)
+        wires = ""
+        instances = ""
+        portName = portName.lower()
+
+        signal = "dac{:d}_ncs".format(self.portCounterDAC)
+        ports += "output {:s}_pin5;\n".format(portName)
+        ports += "assign {:s}_pin5 = {:s};\n".format(portName, signal)
+        wires += "wire {:s};\n".format(signal)
+
+        signal = "dac{:d}_sclk".format(self.portCounterDAC)
+        ports += "output {:s}_pin1;\n".format(portName)
+        ports += "assign {:s}_pin1 = {:s};\n".format(portName, signal)
+        wires += "wire {:s};\n".format(signal)
+
+        signal = "dac{:d}_mosi".format(self.portCounterDAC)
+        ports += "output {:s}_pin9;\n".format(portName)
+        ports += "assign {:s}_pin9 = {:s};\n".format(portName, signal)
+        wires += "wire {:s};\n".format(signal)
+        return (wires, ports, instances)
 
 
-    def generateVerilogPorts(self):
-        result = ""
+    def generateVerilog(self):
+        result = []
         ports = self.config.getPorts()
         self.portCounterDAC = 0
 
@@ -47,27 +56,17 @@ class WizardCodeGenerator:
             print("{:s} has role {:s}.".format(port, role))
 
             if role == self.config.PORT_ROLE_DAC:
-                result += self.generateDACPort(port)
+                result += [self.generateVerilogDAC(port)]
 
         return result
 
 
-    def exportVerilogPorts(self, filename=None):
-        ports = self.generateVerilogPorts()
+    def exportVerilog(self, filename=None):
+        code = str(self.generateVerilog())
+
         if filename is None:
-            print(ports)
+            print(code)
         else:
             f = open(filename, "w")
-            f.write(ports)
+            f.write(code)
             f.close()
-
-
-    def generateVerilogBlock(self, index=None):
-        if index is None:
-            index = self.index
-        result = VerilogInstance(
-                    name="spi_master_{:d}".format(index),
-                    module="spi_master"
-                    )
-        # TODO: Add parameters and ports
-        return result
