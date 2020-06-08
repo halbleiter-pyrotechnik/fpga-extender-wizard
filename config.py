@@ -25,10 +25,10 @@ class Config:
     PORT_ROLE_NUCLEO = "nucleo"
     # The complete list of acceptable port roles
     PORT_ROLES = [
-        self.PORT_ROLE_EMPTY,
-        self.PORT_ROLE_ADC,
-        self.PROT_ROLE_DAC,
-        self.PORT_ROLE_NUCLEO
+        PORT_ROLE_EMPTY,
+        PORT_ROLE_ADC,
+        PORT_ROLE_DAC,
+        PORT_ROLE_NUCLEO
         ]
     PORT_ROLE_DEFAULT = PORT_ROLE_EMPTY
 
@@ -41,13 +41,13 @@ class Config:
     PORT_WIZARD_VERSION_THIS = 1
 
 
-    def __init__(self, filename=None, importText=None, importJSON=None):
+    def __init__(self, importFile=None, importText=None, importJSON=None):
         # Begin with an empty configuration
         self.clear()
 
         # Import from source, if one was given
-        if not (filename is None):
-            self.importFile(filename)
+        if not (importFile is None):
+            self.importFile(importFile)
         elif not (importText is None):
             self.importTXT(text)
         elif not (importJSON is None):
@@ -102,7 +102,7 @@ class Config:
     # Return the configured role for a port
     #
     def getPortRole(self, portName):
-        if portName in self.getPortList()
+        if portName in self.getPortList():
             return self.getPorts()[portName][self.PORT_ROLE]
         return self.PORT_ROLE_DEFAULT
 
@@ -148,6 +148,22 @@ class Config:
             return
 
     #
+    # Read configuration from file (attempt to guess the file format)
+    #
+    def importFile(self, filename):
+        if len(filename) < 5:
+            print("Error: Sorry, filename is too short.")
+            return
+        extension = filename[-5:].lower()
+        if extension[-4:] == ".txt":
+            self.importTXT(filename)
+        elif extension[-5:] == ".json":
+            self.importJSON(filename)
+        else:
+            print("Unable to import configuration from file: Unsupported file format.")
+            return
+
+    #
     # Generate a new configuration from simple text
     #
     def importTXT(self, text):
@@ -175,7 +191,7 @@ class Config:
     #
     # Save the configuration into a text file
     #
-    def saveTXT(self, filename)
+    def saveTXT(self, filename):
         if filename is None:
             print("Error: A filename ist required for saving.")
             return
@@ -251,11 +267,10 @@ class Config:
 
         return True
 
-
     #
     # Export this configuration in JSON format
     #
-    def exportJSON(self)
+    def exportJSON(self):
         j = json.dumps(self.configuration, indent=4, sort_keys=True)
         return j
 
