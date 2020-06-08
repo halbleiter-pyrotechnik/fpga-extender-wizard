@@ -88,17 +88,21 @@ class Config:
             print("Unable to update port {:s}: Illegal setting specified.".format(portName))
             return
         # Make sure, the port exists within the configuration
-        self.configuration[self.FPGA_EXTENDER][portName] = {}
+        if not (self.FPGA_EXTENDER in self.configuration.keys()):
+            self.configuration[self.FPGA_EXTENDER] = {}
+        if not (self.PORTS in self.configuration[self.FPGA_EXTENDER]):
+            self.configuration[self.FPGA_EXTENDER][self.PORTS] = {}
+        if not (portName in self.configuration[self.FPGA_EXTENDER][self.PORTS]):
+            self.configuration[self.FPGA_EXTENDER][self.PORTS][portName] = {}
         # Set the role of this port
-        self.configuration[self.FPGA_EXTENDER][portName][self.PORT_ROLE] = role
+        self.configuration[self.FPGA_EXTENDER][self.PORTS][portName][self.PORT_ROLE] = role
         print("Somebody has changed the role of port {:s} to '{:s}'.".format(portName, role))
 
     #
     # Return the dictionary of FPGA extender ports configured in the JSON
     #
     def getPorts(self):
-        ports = self.configuration[self.FPGA_EXTENDER][self.PORTS] or {}
-        return ports
+        return self.configuration[self.FPGA_EXTENDER][self.PORTS] or {}
 
     #
     # Return an array of port names used in this project
@@ -155,7 +159,7 @@ class Config:
         elif extension[-5:] == ".json":
             self.saveJSON(fout)
         else:
-            print("Unable to save configuration to file: Unsupported file format.")
+            print("Error: Unable to save configuration to file. The file format could not be detected.")
             return
 
     #
@@ -171,7 +175,7 @@ class Config:
         elif extension[-5:] == ".json":
             self.importJSON(filename)
         else:
-            print("Unable to import configuration from file: Unsupported file format.")
+            print("Error: Unable to import configuration from file. The file format could not be detected.")
             return
 
     #
@@ -288,7 +292,7 @@ class Config:
                     if m == r.lower():
                         # This role matches (case-insensistive)
                         self.setPortRole(portName=port, role=r)
-                        print("Changed port {:s}'s role '{:s}' to '{:s}'.".format(port, role, r))
+                        print("Info: Adjusted the role of port {:s} from '{:s}' to '{:s}'.".format(port, role, r))
 
         return True
 

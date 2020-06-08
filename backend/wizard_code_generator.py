@@ -136,6 +136,8 @@ spi_transmitter
 
             if role == self.config.PORT_ROLE_DAC:
                 results += [self.generateVerilogDAC(port)]
+            else:
+                print("Warning: Port role '{:s}' was not recognized.".format(role))
 
         self.verilogWires = ""
         self.verilogPorts = ""
