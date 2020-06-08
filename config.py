@@ -19,10 +19,10 @@ class Config:
     PORT_COUNT = 18
     PORTS = "ports"
     PORT_ROLE = "role"
-    PORT_ROLE_EMPTY = "unused"
-    PORT_ROLE_DAC = "dac"
-    PORT_ROLE_ADC = "adc"
-    PORT_ROLE_NUCLEO = "nucleo"
+    PORT_ROLE_EMPTY = "Empty"
+    PORT_ROLE_DAC = "DAC"
+    PORT_ROLE_ADC = "ADC"
+    PORT_ROLE_NUCLEO = "Nucleo"
     # The complete list of acceptable port roles
     PORT_ROLES = [
         PORT_ROLE_EMPTY,
@@ -75,22 +75,30 @@ class Config:
     # setting must be one of self.PORT_ROLES.
     # Note: Counting starts with 0, e.g. H_H1 => portindex = 0.
     #
-    def setPortRole(self, portindex, setting):
-        portName = "H_H{:d}".format(portindex+1)
-        if not (setting in self.PORT_ROLES):
+    def setPortRole(self, portName=None, portIndex=None, role=None):
+        if (portName is None) and (portIndex is None):
+            print("Error: Updating a port role requires the port's name or index.")
+            return
+        if (role is None):
+            print("Error: Port role cannot be None.")
+            return
+        if (portName is None):
+            portName = "H_H{:d}".format(portIndex+1)
+        if not (role in self.PORT_ROLES):
             print("Unable to update port {:s}: Illegal setting specified.".format(portName))
             return
         # Make sure, the port exists within the configuration
         self.configuration[self.FPGA_EXTENDER][portName] = {}
         # Set the role of this port
-        self.configuration[self.FPGA_EXTENDER][portName][self.PORT_ROLE] = setting
-        print("Somebody has changed the value of port", +portindex, "to " +setting)
+        self.configuration[self.FPGA_EXTENDER][portName][self.PORT_ROLE] = role
+        print("Somebody has changed the role of port {:s} to '{:s}'.".format(portName, role))
 
     #
     # Return the dictionary of FPGA extender ports configured in the JSON
     #
     def getPorts(self):
-        return self.configuration[self.FPGA_EXTENDER][self.PORTS]
+        ports = self.configuration[self.FPGA_EXTENDER][self.PORTS] or {}
+        return ports
 
     #
     # Return an array of port names used in this project
@@ -100,10 +108,13 @@ class Config:
 
     #
     # Return the configured role for a port
+    # or the default role, if unsuccessful
     #
     def getPortRole(self, portName):
         if portName in self.getPortList():
-            return self.getPorts()[portName][self.PORT_ROLE]
+            port = self.getPorts()[portName]
+            if self.PORT_ROLE in port.keys():
+                return port[self.PORT_ROLE] or self.PORT_ROLE_DEFAULT
         return self.PORT_ROLE_DEFAULT
 
     #
@@ -172,7 +183,7 @@ class Config:
         portIndex = 0
         for line in text.split("\n"):
             portIndex += 1
-            self.setPortRole(portIndex, line)
+            self.setPortRole(portIndex=portIndex, role=line)
         if portIndex != self.PORT_COUNT:
             print("Warning: Expected {:d} ports, got {:d}.".format(self.PORT_COUNT, portIndex))
         else:
@@ -264,6 +275,20 @@ class Config:
         if not (self.PORT_WIZARD in self.configuration.keys()):
             print("Configuration error: Section \"{:s}\" is missing.".format(self.PORT_WIZARD))
             return False
+
+        #
+        # Check port roles
+        #
+        for port in self.getPortList():
+            role = self.getPortRole(port)
+            if not (role in self.PORT_ROLES):
+                # Port role was not recognized
+                m = role.lower()
+                for r in self.PORT_ROLES:
+                    if m == r.lower():
+                        # This role matches (case-insensistive)
+                        self.setPortRole(portName=port, role=r)
+                        print("Changed port {:s}'s role '{:s}' to '{:s}'.".format(port, role, r))
 
         return True
 
