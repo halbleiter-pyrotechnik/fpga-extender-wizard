@@ -22,21 +22,26 @@ class WizardCodeGenerator:
 
 
     #
+    # Add a file to the list of Verilog files
+    # to be included be the generated project
+    #
+    def addInclude(self, filename):
+        if not (filename in self.verilogIncludes):
+            self.verilogIncludes += [filename]
+
+    #
     # This method generates code for a DAC
     #
     def generateVerilogDAC(self, portName):
         self.portCounterDAC += 1
 
-        includes = ""
         ports = "/*\n * DAC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterDAC, portName)
         wires = "/*\n * Wires connecting DAC{:d}\n */\nwire ".format(self.portCounterDAC)
         assignments = ""
         instances = ""
         portName = portName.lower()
-
-        if self.portCounterDAC == 1:
-            includes += "`include \"common/spi_stimulus.v\"\n"
-            includes += "`include \"common/spi_transmitter.v\"\n"
+        self.addInclude("spi_stimulus.v")
+        self.addInclude("spi_transmitter.v")
 
         nss_signal = "dac_nss"
         ports += "output {:s}_pin5,\n".format(portName)
@@ -130,7 +135,7 @@ spi_transmitter
         self.portCounterDAC
         )
 
-        return (includes, ports, wires, instances)
+        return (ports, wires, instances)
 
 
     #
@@ -138,6 +143,12 @@ spi_transmitter
     # for all ports in the referenced configuration
     #
     def generateVerilog(self):
+        self.verilogIncludes = []
+        self.verilogIncludeCode = ""
+        self.verilogWires = ""
+        self.verilogPorts = ""
+        self.verilogInstances = ""
+
         results = []
         ports = self.config.getPorts()
         self.portCounterDAC = 0
@@ -151,20 +162,18 @@ spi_transmitter
             else:
                 print("Warning: Port role '{:s}' was not recognized.".format(role))
 
-        self.VerilogIncludes = ""
-        self.verilogWires = ""
-        self.verilogPorts = ""
-        self.verilogInstances = ""
         for e in results:
-            self.VerilogIncludes += e[0]
-            self.verilogPorts += e[1]
-            self.verilogWires += e[2]
-            self.verilogInstances += e[3]
+            self.verilogPorts += e[0]
+            self.verilogWires += e[1]
+            self.verilogInstances += e[2]
+
+        for f in self.verilogIncludes:
+            self.verilogIncludeCode += "`include \"{:s}\"\n".format(f)
 
         clockwork = "wire master_clock;\nassign master_clock = clock_12mhz;\n\n"
 
         self.verilogCode = \
-            self.VerilogIncludes + \
+            self.verilogIncludeCode + \
             "\nmodule top(\n" + \
             self.verilogPorts + \
             "input clock_12mhz\n);\n\n" + \
