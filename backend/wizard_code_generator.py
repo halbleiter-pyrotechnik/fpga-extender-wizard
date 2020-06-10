@@ -26,36 +26,48 @@ class WizardCodeGenerator:
     #
     def generateVerilogDAC(self, portName):
         self.portCounterDAC += 1
+
+        includes = ""
         ports = "/*\n * DAC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterDAC, portName)
         wires = "/*\n * Wires connecting DAC{:d}\n */\nwire ".format(self.portCounterDAC)
+        assignments = ""
         instances = ""
         portName = portName.lower()
 
+        if self.portCounterDAC == 1:
+            includes += "`include \"common/spi_stimulus.v\"\n"
+            includes += "`include \"common/spi_transmitter.v\"\n"
+
         nss_signal = "dac_nss"
-        ports += "output {:s}_pin5;\n".format(portName)
-        ports += "assign {:s}_pin5 = {:s};\n".format(portName, nss_signal)
+        ports += "output {:s}_pin5,\n".format(portName)
+        assignments += "assign {:s}_pin5 = {:s};\n".format(portName, nss_signal)
         if self.portCounterDAC == 1:
             # nSS is shared among all DACs
             wires += "{:s}, ".format(nss_signal)
 
         sclk_signal = "dac_sclk"
-        ports += "output {:s}_pin1;\n".format(portName)
-        ports += "assign {:s}_pin1 = {:s};\n".format(portName, sclk_signal)
+        ports += "output {:s}_pin1,\n".format(portName)
+        assignments += "assign {:s}_pin1 = {:s};\n".format(portName, sclk_signal)
         if self.portCounterDAC == 1:
             # SCLK is shared among all DACs
             wires += "{:s}, ".format(sclk_signal)
 
         mosi_signal = "dac{:d}_mosi".format(self.portCounterDAC)
-        ports += "output {:s}_pin9;\n".format(portName)
-        ports += "assign {:s}_pin9 = {:s};\n\n".format(portName, mosi_signal)
+        ports += "output {:s}_pin9,\n\n".format(portName)
+        assignments += "assign {:s}_pin9 = {:s};\n".format(portName, mosi_signal)
         wires += "{:s};\n".format(mosi_signal)
 
         buffer_bus = "dac{:d}_buffer".format(self.portCounterDAC)
         wires += "wire[15:0] {:s};\n".format(buffer_bus)
         value_bus = "dac{:d}_value".format(self.portCounterDAC)
         wires += "wire[11:0] {:s};\n".format(value_bus)
-        wires += "assign {:s}[15:12] = 4'b0000;\n".format(buffer_bus)
-        wires += "assign {:s}[11:0] = {:s};\n\n".format(buffer_bus, value_bus)
+        assignments += "assign {:s}[15:12] = 4'b0000;\n".format(buffer_bus)
+        assignments += "assign {:s}[11:0] = {:s};\n\n".format(buffer_bus, value_bus)
+
+        if self.portCounterDAC == 1:
+            wires += "wire dac_update_trigger, dac_update_complete;\n"
+
+        wires += assignments
 
         if self.portCounterDAC == 1:
             # SPI requires a stimulus
@@ -118,7 +130,7 @@ spi_transmitter
         self.portCounterDAC
         )
 
-        return (wires, ports, instances)
+        return (includes, ports, wires, instances)
 
 
     #
@@ -139,15 +151,27 @@ spi_transmitter
             else:
                 print("Warning: Port role '{:s}' was not recognized.".format(role))
 
+        self.VerilogIncludes = ""
         self.verilogWires = ""
         self.verilogPorts = ""
         self.verilogInstances = ""
         for e in results:
-            self.verilogWires += e[0]
+            self.VerilogIncludes += e[0]
             self.verilogPorts += e[1]
-            self.verilogInstances += e[2]
+            self.verilogWires += e[2]
+            self.verilogInstances += e[3]
 
-        self.verilogCode =  self.verilogWires + self.verilogPorts + self.verilogInstances
+        clockwork = "wire master_clock;\nassign master_clock = clock_12mhz;\n\n"
+
+        self.verilogCode = \
+            self.VerilogIncludes + \
+            "\nmodule top(\n" + \
+            self.verilogPorts + \
+            "input clock_12mhz\n);\n\n" + \
+            clockwork + \
+            self.verilogWires + \
+            self.verilogInstances + \
+            "endmodule\n"
         return self.verilogCode
 
 
