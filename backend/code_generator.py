@@ -20,14 +20,19 @@ class CodeGenerator:
         count = len(ports)
         print("FPGA extender: {:d} port{:s} configured.".format(count, "s are" if (count > 1) else " is"))
 
-
     #
     # Add a file to the list of Verilog files
     # to be included be the generated project
     #
     def addInclude(self, filename):
-        if not (filename in self.verilogIncludes):
-            self.verilogIncludes += [filename]
+        if not (filename in self.includes):
+            self.includes += [filename]
+
+    #
+    # This method generates Verilog code for an ADC
+    #
+    def generateVerilogADC(self, portName):
+        self.portCounterADC += 1
 
     #
     # This method generates code for a DAC
@@ -135,7 +140,9 @@ spi_transmitter
         self.portCounterDAC
         )
 
-        return (ports, wires, instances)
+        self.ports += ports
+        self.wires += wires
+        self.instances += instances
 
 
     #
@@ -143,11 +150,11 @@ spi_transmitter
     # for all ports in the referenced configuration
     #
     def generateVerilog(self):
-        self.verilogIncludes = []
-        self.verilogIncludeCode = ""
-        self.verilogWires = ""
-        self.verilogPorts = ""
-        self.verilogInstances = ""
+        self.includes = []
+        self.includeCode = ""
+        self.wires = ""
+        self.ports = ""
+        self.instances = ""
 
         results = []
         ports = self.config.getPorts()
@@ -158,31 +165,31 @@ spi_transmitter
             # print("{:s} has role {:s}.".format(port, role))
 
             if role == self.config.PORT_ROLE_DAC:
-                results += [self.generateVerilogDAC(port)]
+                self.generateVerilogDAC(port)
             else:
                 print("Warning: Port role '{:s}' was not recognized.".format(role))
 
         for e in results:
-            self.verilogPorts += e[0]
-            self.verilogWires += e[1]
-            self.verilogInstances += e[2]
+            self.ports += e[0]
+            self.wires += e[1]
+            self.instances += e[2]
 
-        for f in self.verilogIncludes:
-            self.verilogIncludeCode += "`include \"{:s}\"\n".format(f)
+        # Convert list to string
+        for f in self.includes:
+            self.includeCode += "`include \"{:s}\"\n".format(f)
 
         clockwork = "wire master_clock;\nassign master_clock = clock_12mhz;\n\n"
 
         self.verilogCode = \
-            self.verilogIncludeCode + \
+            self.includeCode + \
             "\nmodule top(\n" + \
-            self.verilogPorts + \
+            self.ports + \
             "input clock_12mhz\n);\n\n" + \
             clockwork + \
-            self.verilogWires + \
-            self.verilogInstances + \
+            self.wires + \
+            self.instances + \
             "endmodule\n"
         return self.verilogCode
-
 
     #
     # This method generates Verilog code for the referenced configuration
