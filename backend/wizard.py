@@ -16,7 +16,7 @@ def runWizard(filename=None, plaintext=None):
     config = Config(importFile=filename, importJSON=plaintext)
     code_generator = CodeGenerator(config)
     code_generator.stats()
-    code_generator.exportVerilog()
+    code_generator.exportCode()
 
 
 if __name__ == "__main__":

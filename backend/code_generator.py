@@ -31,13 +31,13 @@ class CodeGenerator:
     #
     # This method generates Verilog code for an ADC
     #
-    def generateVerilogADC(self, portName):
+    def generateCodeADC(self, portName):
         self.portCounterADC += 1
 
     #
     # This method generates code for a DAC
     #
-    def generateVerilogDAC(self, portName):
+    def generateCodeDAC(self, portName):
         self.portCounterDAC += 1
 
         ports = "/*\n * DAC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterDAC, portName)
@@ -149,14 +149,13 @@ spi_transmitter
     # This method generates wires, ports and instances
     # for all ports in the referenced configuration
     #
-    def generateVerilog(self):
+    def generateCode(self):
         self.includes = []
         self.includeCode = ""
         self.wires = ""
         self.ports = ""
         self.instances = ""
 
-        results = []
         ports = self.config.getPorts()
         self.portCounterDAC = 0
 
@@ -164,15 +163,12 @@ spi_transmitter
             role = self.config.getPortRole(port)
             # print("{:s} has role {:s}.".format(port, role))
 
-            if role == self.config.PORT_ROLE_DAC:
-                self.generateVerilogDAC(port)
+            if role == self.config.PORT_ROLE_ADC:
+                self.generateCodeADC(port)
+            elif role == self.config.PORT_ROLE_DAC:
+                self.generateCodeDAC(port)
             else:
                 print("Warning: Port role '{:s}' was not recognized.".format(role))
-
-        for e in results:
-            self.ports += e[0]
-            self.wires += e[1]
-            self.instances += e[2]
 
         # Convert list to string
         for f in self.includes:
@@ -180,7 +176,7 @@ spi_transmitter
 
         clockwork = "wire master_clock;\nassign master_clock = clock_12mhz;\n\n"
 
-        self.verilogCode = \
+        self.code = \
             self.includeCode + \
             "\nmodule top(\n" + \
             self.ports + \
@@ -189,18 +185,17 @@ spi_transmitter
             self.wires + \
             self.instances + \
             "endmodule\n"
-        return self.verilogCode
+        return self.code
 
     #
     # This method generates Verilog code for the referenced configuration
     # and prints it to stdout or saves it to a file
     #
-    def exportVerilog(self, filename=None):
-        code = str(self.generateVerilog())
-
+    def exportCode(self, filename=None):
+        self.generateCode()
         if filename is None:
-            print(code)
+            print(self.code)
         else:
             f = open(filename, "w")
-            f.write(code)
+            f.write(self.code)
             f.close()
