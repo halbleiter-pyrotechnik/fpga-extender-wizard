@@ -5,7 +5,7 @@
 # This class controls Verilog code generation
 # according to the configuration in a referenced configuration object
 #
-class WizardCodeGenerator:
+class CodeGenerator:
     #
     # Store a reference to the configuration object
     #

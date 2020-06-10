@@ -9,12 +9,12 @@
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from config import Config
-from wizard_code_generator import WizardCodeGenerator
+from code_generator import CodeGenerator
 
 
 def runWizard(filename=None, plaintext=None):
     config = Config(importFile=filename, importJSON=plaintext)
-    code_generator = WizardCodeGenerator(config)
+    code_generator = CodeGenerator(config)
     code_generator.stats()
     code_generator.exportVerilog()
 
