@@ -11,6 +11,20 @@ class CodeGenerator:
     #
     def __init__(self, config):
         self.config = config
+        self.clear()
+
+    #
+    # Flush all code generation-related variables
+    #
+    def clear(self):
+        self.includes = []
+        self.includeCode = ""
+        self.wires = ""
+        self.ports = ""
+        self.instances = ""
+
+        self.portCounterADC = 0
+        self.portCounterDAC = 0
 
     #
     # Summarize the FPGA extender configuration
@@ -33,6 +47,107 @@ class CodeGenerator:
     #
     def generateCodeADC(self, portName):
         self.portCounterADC += 1
+
+        ports = "/*\n * ADC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterADC, portName)
+        wires = "/*\n * Wires connecting ADC{:d}\n */\nwire ".format(self.portCounterADC)
+        assignments = ""
+        instances = ""
+        portName = portName.lower()
+        self.addInclude("spi_stimulus.v")
+        self.addInclude("spi_receiver.v")
+
+        nss_signal = "adc_nss"
+        ports += "output {:s}_pin5,\n".format(portName)
+        assignments += "assign {:s}_pin5 = {:s};\n".format(portName, nss_signal)
+        if self.portCounterADC == 1:
+            # nSS is shared among all DACs
+            wires += "{:s}, ".format(nss_signal)
+
+        sclk_signal = "adc_sclk"
+        ports += "output {:s}_pin1,\n".format(portName)
+        assignments += "assign {:s}_pin1 = {:s};\n".format(portName, sclk_signal)
+        if self.portCounterADC == 1:
+            # SCLK is shared among all DACs
+            wires += "{:s}, ".format(sclk_signal)
+
+        miso_signal = "adc{:d}_miso".format(self.portCounterADC)
+        ports += "input  {:s}_pin3,\n\n".format(portName)
+        assignments += "assign {:s} = {:s}_pin3;\n".format(miso_signal, portName)
+        wires += "{:s};\n".format(miso_signal)
+
+        buffer_bus = "adc{:d}_buffer".format(self.portCounterADC)
+        wires += "wire[15:0] {:s};\n".format(buffer_bus)
+        value_bus = "adc{:d}_value".format(self.portCounterADC)
+        wires += "wire[11:0] {:s};\n".format(value_bus)
+        assignments += "assign {:s}[11:0] = {:s}[13:2];\n\n".format(value_bus, buffer_bus)
+
+        if self.portCounterADC == 1:
+            wires += "wire adc_acquisition_trigger, adc_acquisition_complete;\n"
+
+        wires += assignments
+
+        if self.portCounterADC == 1:
+            # SPI requires a stimulus
+            instances += \
+"""/**
+ * Generate SPI signals for data download from ADCs
+ */
+spi_stimulus
+    #(
+        .bitcount       (16),
+        .ss_polarity    (0),
+        .sclk_polarity  (0),
+        .tick_count_sclk_delay_leading      (0),
+        .tick_count_sclk_delay_trailing     (2),
+        .tick_count_complete_delay_trailing (3)
+        )
+    adc_spi_stimulus
+    (
+        .clock      (master_clock),
+        .trigger    (adc_acquisition_trigger),
+        .invalidate (1'b0),
+        .ss         (adc_nss),
+        .sclk       (adc_sclk),
+        .complete   (adc_acquisition_complete)
+        );
+
+"""
+
+        instances += \
+"""/**
+ * Download data from ADC{:d}
+ */
+spi_receiver
+    #(
+        .ss_polarity            (0),
+        .sclk_polarity          (0),
+        .sclk_phase             (1),
+        .bitcount               (16),
+        .msb_first              (1),
+        .use_gated_output       (1),
+        .use_external_trigger   (0)
+        )
+    spi_receiver_adc{:d}
+    (
+        .clock      (master_clock),
+        .trigger    (),
+        .ss         (adc_nss),
+        .sclk       (adc_sclk),
+        .sdi        ({:s}),
+        .data       ({:s}),
+        .complete   ()
+        );
+
+""".format(
+        self.portCounterADC,
+        self.portCounterADC,
+        miso_signal,
+        value_bus
+        )
+
+        self.ports += ports
+        self.wires += wires
+        self.instances += instances
 
     #
     # This method generates code for a DAC
@@ -83,8 +198,7 @@ class CodeGenerator:
             # SPI requires a stimulus
             instances += \
 """/**
- * This instance generates slave-select and
- * clock signals for the SPI transmission
+ * Generate SPI signals for data transmission to DACs
  */
 spi_stimulus
     #(
@@ -92,7 +206,7 @@ spi_stimulus
         .ss_polarity    (0),
         .sclk_polarity  (0)
         )
-    analog_debugger_spi_stimulus
+    dac_spi_stimulus
     (
         .clock      (master_clock),
         .trigger    (dac_update_trigger),
@@ -106,7 +220,7 @@ spi_stimulus
 
         instances += \
 """/**
- * This instance transmits data to DAC{:d}
+ * Transmit data to DAC{:d}
  */
 spi_transmitter
     #(
@@ -150,15 +264,9 @@ spi_transmitter
     # for all ports in the referenced configuration
     #
     def generateCode(self):
-        self.includes = []
-        self.includeCode = ""
-        self.wires = ""
-        self.ports = ""
-        self.instances = ""
+        self.clear()
 
         ports = self.config.getPorts()
-        self.portCounterDAC = 0
-
         for port in ports.keys():
             role = self.config.getPortRole(port)
             # print("{:s} has role {:s}.".format(port, role))
