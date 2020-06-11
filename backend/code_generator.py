@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+import sys
+sys.path.append("..")
+from config import *
+
 
 #
 # This class controls Verilog code generation
@@ -25,6 +29,7 @@ class CodeGenerator:
 
         self.portCounterADC = 0
         self.portCounterDAC = 0
+        self.portCounterMCU = 0
 
     #
     # Summarize the FPGA extender configuration
@@ -45,7 +50,8 @@ class CodeGenerator:
     #
     # This method generates Verilog code for an ADC
     #
-    def generateCodeADC(self, portName):
+    def generateCodeADC(self, port):
+        portName = port.getName()
         self.portCounterADC += 1
 
         ports = "/*\n * ADC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterADC, portName)
@@ -152,7 +158,8 @@ spi_receiver
     #
     # This method generates code for a DAC
     #
-    def generateCodeDAC(self, portName):
+    def generateCodeDAC(self, port):
+        portName = port.getName()
         self.portCounterDAC += 1
 
         ports = "/*\n * DAC{:d} is connected to extender port {:s}\n */\n".format(self.portCounterDAC, portName)
@@ -260,21 +267,147 @@ spi_transmitter
 
 
     #
+    # This method generates code for a DAC
+    #
+    def generateCodeMCU(self, port):
+        portName = port.getName()
+        bitcount = port.getBitCount()
+        self.portCounterMCU += 1
+
+        ports = "/*\n * MCU{:d} is connected to extender port {:s}\n */\n".format(self.portCounterMCU, portName)
+        wires = "/*\n * Wires connecting MCU{:d}\n */\nwire ".format(self.portCounterMCU)
+        assignments = ""
+        instances = ""
+        portName = portName.lower()
+        self.addInclude("spi_stimulus.v")
+        self.addInclude("spi_transmitter.v")
+        self.addInclude("spi_receiver.v")
+
+        nss_signal = "mcu{:d}_nss".format(self.portCounterMCU)
+        ports += "input  {:s}_pin5,\n".format(portName)
+        assignments += "assign {:s} = {:s}_pin5;\n".format(nss_signal, portName)
+        wires += "{:s}, ".format(nss_signal)
+
+        sclk_signal = "mcu{:d}_sclk".format(self.portCounterMCU)
+        ports += "input  {:s}_pin1,\n".format(portName)
+        assignments += "assign {:s} = {:s}_pin1;\n".format(sclk_signal, portName)
+        wires += "{:s}, ".format(sclk_signal)
+
+        mosi_signal = "mcu{:d}_mosi".format(self.portCounterMCU)
+        ports += "input  {:s}_pin9,\n".format(portName)
+        assignments += "assign {:s} = {:s}_pin9;\n".format(mosi_signal, portName)
+        wires += "{:s}, ".format(mosi_signal)
+
+        miso_signal = "mcu{:d}_miso".format(self.portCounterMCU)
+        ports += "output {:s}_pin3,\n\n".format(portName)
+        assignments += "assign {:s}_pin3 = {:s};\n".format(portName, miso_signal)
+        wires += "{:s};\n".format(miso_signal)
+
+        data_incoming = "mcu{:d}_data_incoming".format(self.portCounterMCU)
+        data_outgoing = "mcu{:d}_data_outgoing".format(self.portCounterMCU)
+        wires += "wire[{:d}:0] {:s}, {:s};\n".format(bitcount-1, data_incoming, data_outgoing)
+
+        complete_signal = "mcu{:d}_transfer_complete".format(self.portCounterMCU)
+        wires += "wire {:s};\n".format(complete_signal)
+        wires += assignments
+        wires += "\n"
+
+        instances += \
+"""/**
+ * Transmit data to MCU{:d}
+ */
+spi_transmitter
+    #(
+        .ss_polarity    (0),
+        // This is a workaround to simulatte CPHA = 0.
+        .sclk_polarity  (1),
+        // CPHA is not evaluated/supported yet.
+        // .sclk_phase     (1),
+        .bitcount       ({:d}),
+        .msb_first      (1),
+        .use_load_input (0)
+        )
+    spi_transmitter_mcu{:d}
+    (
+        .clock      (master_clock),
+        .ss         ({:s}),
+        .sclk       ({:s}),
+        .sdo        ({:s}),
+        .load       (),
+        .data       ({:s}[{:d}:0]),
+        .complete   ()
+        );
+
+""".format(
+        self.portCounterMCU,
+        bitcount,
+        self.portCounterMCU,
+        nss_signal,
+        sclk_signal,
+        miso_signal,
+        data_outgoing,
+        bitcount-1
+        )
+
+        instances += \
+"""/**
+ * Receive data from MCU{:d}
+ */
+spi_receiver
+    #(
+        .ss_polarity            (0),
+        .sclk_polarity          (1),
+        // CPHA is not evaluated/supported yet.
+        // .sclk_phase             (1),
+        .bitcount               ({:d}),
+        .msb_first              (1),
+        .use_gated_output       (1),
+        .use_external_trigger   (0)
+        )
+    spi_receiver_mcu{:d}
+    (
+        .clock      (master_clock),
+        .trigger    (),
+        .ss         ({:s}),
+        .sclk       ({:s}),
+        .sdi        ({:s}),
+        .data       ({:s}[{:d}:0]),
+        .complete   ({:s})
+        );
+
+""".format(
+        self.portCounterMCU,
+        bitcount,
+        self.portCounterMCU,
+        nss_signal,
+        sclk_signal,
+        mosi_signal,
+        data_incoming,
+        bitcount-1,
+        complete_signal
+        )
+
+        self.ports += ports
+        self.wires += wires
+        self.instances += instances
+
+    #
     # This method generates wires, ports and instances
     # for all ports in the referenced configuration
     #
     def generateCode(self):
         self.clear()
 
-        ports = self.config.getPorts()
-        for port in ports.keys():
-            role = self.config.getPortRole(port)
+        for port in self.config.getPortList():
+            role = port.getRole()
             # print("{:s} has role {:s}.".format(port, role))
 
-            if role == self.config.PORT_ROLE_ADC:
+            if role == Port.ROLE_ADC:
                 self.generateCodeADC(port)
-            elif role == self.config.PORT_ROLE_DAC:
+            elif role == Port.ROLE_DAC:
                 self.generateCodeDAC(port)
+            elif role == Port.ROLE_NUCLEO:
+                self.generateCodeMCU(port)
             else:
                 print("Warning: Port role '{:s}' was not recognized.".format(role))
 

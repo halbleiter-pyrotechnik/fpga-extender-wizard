@@ -6,6 +6,93 @@ from tkinter import filedialog
 
 
 #
+# Store and handle extender port-related configuration
+#
+class Port:
+    ROLE = "role"
+    ROLE_EMPTY = "Empty"
+    ROLE_DAC = "DAC"
+    ROLE_ADC = "ADC"
+    ROLE_NUCLEO = "Nucleo"
+    # The complete list of acceptable port roles
+    ROLES = [
+        ROLE_EMPTY,
+        ROLE_ADC,
+        ROLE_DAC,
+        ROLE_NUCLEO
+        ]
+    ROLE_DEFAULT = ROLE_EMPTY
+
+    def __init__(self, portName=None, importDict=None):
+        self.name = "H_H0"
+        self.config = {}
+        if (portName is None) or (importDict is None):
+            return
+        self.name = portName
+        self.config = importDict
+
+    def getName(self):
+        return self.name
+
+    def getConfig(self):
+        return self.config
+
+    def getRole(self):
+        if self.ROLE in self.config.keys():
+            return self.convertToAcceptableRole(self.config[self.ROLE])
+        return self.getDefaultRole()
+
+    def setRole(self, newRole):
+        if (role is None):
+            print("Error: Port role cannot be None.")
+            return
+        if newRole in self.getPossibleRoles():
+            self.config[ROLE] = newRole
+            return
+        print("Error: Unsupported port role '{:s}'.".format(newRole))
+
+    def getAcceptableRoles(self):
+        return self.ROLES
+
+    def convertToAcceptableRole(self, role):
+        acceptablePortRoles = self.getAcceptableRoles()
+        if role in acceptablePortRoles:
+            return role
+        # Port role was not recognized; search for case-insensistive matches
+        m = role.lower()
+        for r in acceptablePortRoles:
+            if m == r.lower():
+                return r
+        # Role is not acceptable
+        return None
+
+    def isAcceptableRole(self, role):
+        return not (self.convertToAcceptableRole(role) is None)
+
+    def getDefaultRole(self):
+        return self.ROLE_DEFAULT
+
+
+#
+# Store and handle ports configured as MCU interface
+#
+class PortMCU(Port):
+    BITCOUNT = "bitcount"
+
+    def __init__(self, portName=None, importDict=None):
+        Port.__init__(self, portName, importDict)
+        self.bitcount = 0
+        if self.BITCOUNT in self.config.keys():
+            try:
+                self.bitcount = int(self.config[self.BITCOUNT])
+            except:
+                pass
+
+    def getBitCount(self):
+        return self.bitcount
+
+
+#
 # This class stores the project configuration
 # and handles imports from and exports to files.
 #
@@ -18,22 +105,6 @@ class Config:
 
     PORT_COUNT = 18
     PORTS = "ports"
-    PORT_ROLE = "role"
-    PORT_ROLE_EMPTY = "Empty"
-    PORT_ROLE_DAC = "DAC"
-    PORT_ROLE_ADC = "ADC"
-    PORT_ROLE_NUCLEO = "Nucleo"
-    # The complete list of acceptable port roles
-    PORT_ROLES = [
-        PORT_ROLE_EMPTY,
-        PORT_ROLE_ADC,
-        PORT_ROLE_DAC,
-        PORT_ROLE_NUCLEO
-        ]
-    PORT_ROLE_DEFAULT = PORT_ROLE_EMPTY
-
-    PORT_INTERFACE = "interface"
-    PORT_INTERFACE_SPI_MASTER = "spi-master"
 
     PORT_WIZARD = "port-wizard"
     PORT_WIZARD_VERSION = "version"
@@ -72,31 +143,22 @@ class Config:
 
     #
     # Set the role of the extender port with the given index
-    # setting must be one of self.PORT_ROLES.
+    # setting must be one of self.ROLES.
     # Note: Counting starts with 0, e.g. H_H1 => portindex = 0.
     #
     def setPortRole(self, portName=None, portIndex=None, role=None):
         if (portName is None) and (portIndex is None):
             print("Error: Updating a port role requires the port's name or index.")
             return
-        if (role is None):
-            print("Error: Port role cannot be None.")
-            return
         if (portName is None):
             portName = "H_H{:d}".format(portIndex+1)
-        if not (role in self.PORT_ROLES):
-            print("Unable to update port {:s}: Illegal setting specified.".format(portName))
+
+        port = self.getPortByName(portName)
+        if port is None:
+            print("Error: No such port: '{:s}'".format(portName))
             return
-        # Make sure, the port exists within the configuration
-        if not (self.FPGA_EXTENDER in self.configuration.keys()):
-            self.configuration[self.FPGA_EXTENDER] = {}
-        if not (self.PORTS in self.configuration[self.FPGA_EXTENDER]):
-            self.configuration[self.FPGA_EXTENDER][self.PORTS] = {}
-        if not (portName in self.configuration[self.FPGA_EXTENDER][self.PORTS]):
-            self.configuration[self.FPGA_EXTENDER][self.PORTS][portName] = {}
-        # Set the role of this port
-        self.configuration[self.FPGA_EXTENDER][self.PORTS][portName][self.PORT_ROLE] = role
-        print("Somebody has changed the role of port {:s} to '{:s}'.".format(portName, role))
+        port.setRole(role)
+
 
     #
     # Return the dictionary of FPGA extender ports configured in the JSON
@@ -105,24 +167,40 @@ class Config:
         return self.configuration[self.FPGA_EXTENDER][self.PORTS] or {}
 
     #
-    # Return an array of port names used in this project
+    # Return an array of configured port objects
     #
     def getPortList(self):
+        return list(self.getPorts().values())
+
+    #
+    # Return an array of port names used in this project
+    #
+    def getPortNameList(self):
         return list(self.getPorts().keys())
+
+    #
+    # Return the Port object with the given name or None
+    #
+    def getPortByName(self, portName):
+        if portName is None:
+            return None
+        for port in self.getPorts():
+            if port.getName() == portName:
+                return port
+        return None
 
     #
     # Return the configured role for a port
     # or the default role, if unsuccessful
     #
     def getPortRole(self, portName):
-        if portName in self.getPortList():
-            port = self.getPorts()[portName]
-            if self.PORT_ROLE in port.keys():
-                return port[self.PORT_ROLE] or self.PORT_ROLE_DEFAULT
-        return self.PORT_ROLE_DEFAULT
+        port = self.getPortByName(portName)
+        if port is None:
+            return self.ROLE_DEFAULT
+        return port.getRole()
 
     #
-    # Return a list of the roles of all ports
+    # Return a list of the configured roles of all ports
     #
     def getPortRoles(self):
         a = []
@@ -135,13 +213,13 @@ class Config:
     # Return a list of possible extender port roles
     #
     def getPortOptions(self):
-        return self.PORT_ROLES
+        return Port.getAcceptableRoles()
 
     #
     # Return the default port extender port role
     #
     def getDefaultValue(self):
-        return self.PORT_ROLE_DEFAULT
+        return Port.getDefaultRole()
 
     #
     # Save the configuration to a file
@@ -281,18 +359,16 @@ class Config:
             return False
 
         #
-        # Check port roles
+        # Convert ports to objects
         #
-        for port in self.getPortList():
-            role = self.getPortRole(port)
-            if not (role in self.PORT_ROLES):
-                # Port role was not recognized
-                m = role.lower()
-                for r in self.PORT_ROLES:
-                    if m == r.lower():
-                        # This role matches (case-insensistive)
-                        self.setPortRole(portName=port, role=r)
-                        print("Info: Adjusted the role of port {:s} from '{:s}' to '{:s}'.".format(port, role, r))
+        for portName in self.getPortNameList():
+            d = self.configuration[self.FPGA_EXTENDER][self.PORTS][portName]
+            obj = Port(portName, d)
+            if obj.getRole() == Port.ROLE_NUCLEO:
+                obj = PortMCU(portName, d)
+            self.configuration[self.FPGA_EXTENDER][self.PORTS][portName] = obj
+
+        print(self.getPortList())
 
         return True
 
