@@ -142,6 +142,17 @@ class Config:
         return str(self.getPortRoles())
 
     #
+    # Create new port and append it to the list of ports
+    #
+    def createPort(self, portName, config={}, addToConfiguration=True):
+        obj = Port(portName, config)
+        if obj.getRole() == Port.ROLE_NUCLEO:
+            obj = PortMCU(portName, config)
+        if addToConfiguration:
+            self.configuration[self.FPGA_EXTENDER][self.PORTS][portName] = obj
+        return obj
+
+    #
     # Set the role of the extender port with the given index
     # setting must be one of self.ROLES.
     # Note: Counting starts with 0, e.g. H_H1 => portindex = 0.
@@ -155,8 +166,8 @@ class Config:
 
         port = self.getPortByName(portName)
         if port is None:
-            print("Error: No such port: '{:s}'".format(portName))
-            return
+            # Create new port
+            port = self.createPort(portName)
         port.setRole(role)
 
 
@@ -363,10 +374,7 @@ class Config:
         #
         for portName in self.getPortNameList():
             d = self.configuration[self.FPGA_EXTENDER][self.PORTS][portName]
-            obj = Port(portName, d)
-            if obj.getRole() == Port.ROLE_NUCLEO:
-                obj = PortMCU(portName, d)
-            self.configuration[self.FPGA_EXTENDER][self.PORTS][portName] = obj
+            self.createPort(portName, d)
 
         print(self.getPortList())
 
