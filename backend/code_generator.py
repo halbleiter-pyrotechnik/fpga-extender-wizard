@@ -44,9 +44,10 @@ class CodeGenerator:
     # to be included be the generated project
     #
     def addInclude(self, filename):
+        # filename = os.path.join(self.config.getCodeGeneratorConfig().getPathToLibrary, filename)
+        filename = os.path.join("src", "common", filename)
         if not (filename in self.includes):
-            # self.includes += [os.path.join(self.config.getCodeGeneratorConfig().getPathToLibrary, filename)]
-            self.includes += [os.path.join("src", "common", filename)]
+            self.includes += [filename]
 
     #
     # This method generates Verilog code for an ADC
