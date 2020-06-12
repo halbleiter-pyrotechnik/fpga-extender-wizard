@@ -375,8 +375,7 @@ class Config:
         for portName in self.getPortNameList():
             d = self.configuration[self.FPGA_EXTENDER][self.PORTS][portName]
             self.createPort(portName, d)
-
-        print(self.getPortList())
+        # print(self.getPortList())
 
         return True
 

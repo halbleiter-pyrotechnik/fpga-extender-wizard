@@ -15,7 +15,6 @@ from code_generator import CodeGenerator
 def runWizard(filename=None, plaintext=None):
     config = Config(importFile=filename, importJSON=plaintext)
     code_generator = CodeGenerator(config)
-    code_generator.stats()
     code_generator.exportCode()
 
 

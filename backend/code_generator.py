@@ -45,7 +45,8 @@ class CodeGenerator:
     #
     def addInclude(self, filename):
         if not (filename in self.includes):
-            self.includes += [filename]
+            # self.includes += [os.path.join(self.config.getCodeGeneratorConfig().getPathToLibrary, filename)]
+            self.includes += [os.path.join("src", "common", filename)]
 
     #
     # This method generates Verilog code for an ADC
@@ -425,6 +426,10 @@ spi_receiver
         clockwork = "wire master_clock;\nassign master_clock = clock_12mhz;\n\n"
 
         self.code = \
+"""/**
+ * This is a generated top module
+ */
+""" + \
             self.includeCode + \
             "\nmodule top(\n" + \
             self.ports + \
@@ -433,17 +438,43 @@ spi_receiver
             self.wires + \
             self.instances + \
             "endmodule\n"
+
         return self.code
 
     #
     # This method generates Verilog code for the referenced configuration
     # and prints it to stdout or saves it to a file
     #
-    def exportCode(self, filename=None):
+    def exportCode(self):
         self.generateCode()
-        if filename is None:
-            print(self.code)
-        else:
-            f = open(filename, "w")
-            f.write(self.code)
-            f.close()
+
+        self.filenameIncludes = "build/includes.vh"
+        self.filenamePorts = "build/ports.vh"
+        self.filenameWires = "build/wires.v"
+        self.filenameInstances = "build/instances.v"
+        self.filenameTop = "build/top.v"
+
+        f = open(self.filenameIncludes, "w")
+        f.write(self.includeCode)
+        f.close()
+        print("Info: Inclusions written to {:s}.".format(self.filenameIncludes))
+
+        f = open(self.filenamePorts, "w")
+        f.write(self.ports)
+        f.close()
+        print("Info: Ports written to {:s}.".format(self.filenamePorts))
+
+        f = open(self.filenameWires, "w")
+        f.write(self.wires)
+        f.close()
+        print("Info: Wires written to {:s}.".format(self.filenameWires))
+
+        f = open(self.filenameInstances, "w")
+        f.write(self.instances)
+        f.close()
+        print("Info: Instantiations written to {:s}.".format(self.filenameInstances))
+
+        f = open(self.filenameTop, "w")
+        f.write(self.code)
+        f.close()
+        print("Info: Top module written to {:s}.".format(self.filenameTop))
