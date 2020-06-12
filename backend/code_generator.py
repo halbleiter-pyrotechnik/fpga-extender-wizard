@@ -76,6 +76,11 @@ class CodeGenerator:
             # SCLK is shared among all DACs
             wires += "{:s}, ".format(sclk_signal)
 
+        rclk_signal = "adc{:d}_rclk".format(self.portCounterADC)
+        ports += "input  {:s}_pin9,\n".format(portName)
+        assignments += "assign {:s} = {:s}_pin9;\n".format(rclk_signal, portName)
+        wires += "{:s}, ".format(rclk_signal)
+
         miso_signal = "adc{:d}_miso".format(self.portCounterADC)
         ports += "input  {:s}_pin3,\n\n".format(portName)
         assignments += "assign {:s} = {:s}_pin3;\n".format(miso_signal, portName)
@@ -137,8 +142,8 @@ spi_receiver
     (
         .clock      (master_clock),
         .trigger    (),
-        .ss         (adc_nss),
-        .sclk       (adc_sclk),
+        .ss         ({:s}),
+        .sclk       ({:s}),
         .sdi        ({:s}),
         .data       ({:s}),
         .complete   ()
@@ -147,6 +152,8 @@ spi_receiver
 """.format(
         self.portCounterADC,
         self.portCounterADC,
+        nss_signal,
+        rclk_signal,
         miso_signal,
         value_bus
         )
