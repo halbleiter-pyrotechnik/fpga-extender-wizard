@@ -19,7 +19,7 @@ class View(tk.Tk):
     #
     def createBackground(self):
         self.canvas = tk.Canvas(self, width=784, height=805, bg="#263D42")
-        self.image = ImageTk.PhotoImage(Image.open("C:\\Program Files\\Git\\test-repo\\FPGA-Extender.PNG"))
+        self.image = ImageTk.PhotoImage(Image.open("FPGA-Extender.PNG"))
         self.canvas.create_image(0, 0, anchor='nw', image=self.image)
         self.canvas.pack(expand=1, fill='both')
 
