@@ -43,11 +43,11 @@ class Port:
         return self.getDefaultRole()
 
     def setRole(self, newRole):
-        if (role is None):
+        if (newRole is None):
             print("Error: Port role cannot be None.")
             return
-        if newRole in self.getPossibleRoles():
-            self.config[ROLE] = newRole
+        if newRole in self.getAcceptableRoles():
+            self.config[self.ROLE] = newRole
             return
         print("Error: Unsupported port role '{:s}'.".format(newRole))
 
@@ -195,7 +195,7 @@ class Config:
     def getPortByName(self, portName):
         if portName is None:
             return None
-        for port in self.getPorts():
+        for port in self.getPortList():
             if port.getName() == portName:
                 return port
         return None
