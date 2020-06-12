@@ -59,7 +59,7 @@ class Controller:
         self.config.saveFile()
 
     def input(self, index, value):
-        self.config.setPort(index, value)
+        self.config.setPortRole(portIndex=index, role=value)
 
     def doSumting(event):
         # clicked1.set()

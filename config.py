@@ -224,13 +224,13 @@ class Config:
     # Return a list of possible extender port roles
     #
     def getPortOptions(self):
-        return Port.getAcceptableRoles()
+        return Port().getAcceptableRoles()
 
     #
     # Return the default port extender port role
     #
     def getDefaultValue(self):
-        return Port.getDefaultRole()
+        return Port().getDefaultRole()
 
     #
     # Save the configuration to a file
