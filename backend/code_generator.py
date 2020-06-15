@@ -45,7 +45,7 @@ class CodeGenerator:
     #
     def addInclude(self, filename):
         # filename = os.path.join(self.config.getCodeGeneratorConfig().getPathToLibrary, filename)
-        filename = os.path.join("src", "common", filename)
+        filename = os.path.join("..", "..", "lib", "logic", filename)
         if not (filename in self.includes):
             self.includes += [filename]
 
@@ -61,8 +61,8 @@ class CodeGenerator:
         assignments = ""
         instances = ""
         portName = portName.lower()
-        self.addInclude("spi_stimulus.v")
-        self.addInclude("spi_receiver.v")
+        self.addInclude(os.path.join("spi", "stimulus.v"))
+        self.addInclude(os.path.join("spi", "receiver.v"))
 
         nss_signal = "adc_nss"
         ports += "output {:s}_pin5,\n".format(portName)
@@ -176,8 +176,8 @@ spi_receiver
         assignments = ""
         instances = ""
         portName = portName.lower()
-        self.addInclude("spi_stimulus.v")
-        self.addInclude("spi_transmitter.v")
+        self.addInclude(os.path.join("spi", "stimulus.v"))
+        self.addInclude(os.path.join("spi", "transmitter.v"))
 
         nss_signal = "dac_nss"
         ports += "output {:s}_pin5,\n".format(portName)
@@ -242,7 +242,7 @@ spi_transmitter
     #(
         .ss_polarity    (0),
         // This is a workaround to simulatte CPHA = 0.
-        .sclk_polarity  (1),
+        .sclk_polarity  (0),
         // CPHA is not evaluated/supported yet.
         // .sclk_phase     (1),
         .bitcount       (16),
@@ -288,9 +288,9 @@ spi_transmitter
         assignments = ""
         instances = ""
         portName = portName.lower()
-        self.addInclude("spi_stimulus.v")
-        self.addInclude("spi_transmitter.v")
-        self.addInclude("spi_receiver.v")
+        self.addInclude(os.path.join("spi", "stimulus.v"))
+        self.addInclude(os.path.join("spi", "receiver.v"))
+        self.addInclude(os.path.join("spi", "transmitter.v"))
 
         nss_signal = "mcu{:d}_nss".format(self.portCounterMCU)
         ports += "input  {:s}_pin5,\n".format(portName)
