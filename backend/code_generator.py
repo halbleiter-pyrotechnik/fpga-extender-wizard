@@ -95,7 +95,7 @@ class CodeGenerator:
         assignments += "assign {:s}[11:0] = {:s}[13:2];\n\n".format(value_bus, buffer_bus)
 
         if self.portCounterADC == 1:
-            wires += "wire adc_acquisition_trigger, adc_acquisition_complete;\n"
+            wires += "wire \\\n adc_acquisition_trigger,\n adc_acquisition_complete,\n adc_acquisition_valid;\n"
 
         wires += assignments
 
@@ -118,13 +118,16 @@ spi_stimulus
     (
         .clock      (master_clock),
         .trigger    (adc_acquisition_trigger),
-        .invalidate (1'b0),
+        .invalidate ({:s}),
         .ss         (adc_nss),
         .sclk       (adc_sclk),
-        .complete   (adc_acquisition_complete)
+        .complete   (adc_acquisition_complete),
+        .valid      (adc_acquisition_valid)
         );
 
-"""
+""".format(
+        "inhibit_adc_acquisition"
+        )
 
         instances += \
 """/**
