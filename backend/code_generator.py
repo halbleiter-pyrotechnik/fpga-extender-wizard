@@ -157,7 +157,7 @@ spi_receiver
         nss_signal,
         rclk_signal,
         miso_signal,
-        value_bus
+        buffer_bus
         )
 
         self.ports += ports
